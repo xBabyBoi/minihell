@@ -6,26 +6,27 @@
 /*   By: rhafidi <rhafidi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/16 15:17:18 by rhafidi           #+#    #+#             */
-/*   Updated: 2025/05/16 17:42:43 by rhafidi          ###   ########.fr       */
+/*   Updated: 2025/08/02 20:19:13 by rhafidi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void    free_array(char **str)
+void	free_array(char **str)
 {
-    int i;
+	int	i;
 
-    i = 0;
-    while (str[i])
-    {
-        free(str[i]);
-        str[i] = NULL;
-        i++;
-    }
-    free(str);
-    str = NULL;
+	i = 0;
+	while (str[i])
+	{
+		free(str[i]);
+		str[i] = NULL;
+		i++;
+	}
+	free(str);
+	str = NULL;
 }
+
 char	*get_env_path(char **env)
 {
 	int	i;
@@ -40,7 +41,7 @@ char	*get_env_path(char **env)
 	return (NULL);
 }
 
-char    *get_path(char *cmd, char **env)
+char	*get_path(char *cmd, char **env)
 {
 	char	*path;
 	char	**dir;
@@ -59,7 +60,7 @@ char    *get_path(char *cmd, char **env)
 		cmd_path = ft_strjoin(dir[i], tmp_cmd);
 		if (!access(cmd_path, F_OK | X_OK))
 		{
-			free_array(dir);
+			(free_array(dir), free(tmp_cmd));
 			return (cmd_path);
 		}
 		free(cmd_path);
@@ -69,39 +70,41 @@ char    *get_path(char *cmd, char **env)
 	return (NULL);
 }
 
-void    access_exec(char **argv, char **env)
+char	*get_command_path(t_tree *root, char **env, char **exported, int i)
 {
-    if (access(argv[0], F_OK | X_OK) == -1)
-    {
-        perror("access failed : ");
-        free_array(argv);
-        exit(1);
-    }    
-    if (execve(argv[0], argv, env) == -1)
-    {
-        perror("exec failed :");
-        free_array(argv);
-        exit(1);
-    }
+	if (handle_dot_command(root, env, exported, i))
+		return (NULL);
+	if (ft_strchr(root->command[i], '/') || root->command[i][0] == '.')
+		return (handle_absolute_path(root, env, exported, i));
+	else
+		return (handle_relative_path(root, env, exported, i));
 }
 
-void    execute_command(t_tree *root, int in, int out, char **env)
+void	execute_command(t_tree *root, t_data *data)
 {
-    char **argv;
-    char    *path;
-    int     status;
-    
-    argv = root->command;
-    if (argv[0][0] == '/' || argv[0][0] == '.')
-        access_exec(argv, env);
-    path = get_path(argv[0], env);
-    if (!path)
-    {
-        perror("command not found");
-        exit(127);
-    }
-    execve(path, argv, env);
-    perror("exec failed");
-    free_array(argv);
-    exit(1);
+	char	*path;
+	int		i;
+	char	**env;
+	char	**exported;
+
+	i = 0;
+	if (data->fds)
+		free(data->fds);
+	env = data->env[0];
+	exported = data->exported[0];
+	while (root->command[i] && root->command[i][0] == '\0')
+		i++;
+	if (!root->command[i])
+	{
+		free_array(env);
+		free_array(exported);
+		free_tree(&root);
+		free(data);
+		clear_history();
+		exit(EXIT_SUCCESS);
+	}
+	path = get_command_path(root, env, exported, i);
+	free(data);
+	if (execve(path, &root->command[i], env) == -1)
+		handle_execve_error(root, path, env, exported);
 }

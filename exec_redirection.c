@@ -1,41 +1,34 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   free_tree.c                                        :+:      :+:    :+:   */
+/*   exec_redirection.c                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: rhafidi <rhafidi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/04/16 15:20:39 by rhafidi           #+#    #+#             */
-/*   Updated: 2025/07/25 17:55:18 by rhafidi          ###   ########.fr       */
+/*   Created: 2025/08/02 15:35:55 by rhafidi           #+#    #+#             */
+/*   Updated: 2025/08/02 15:36:14 by rhafidi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void	free_tree(t_tree **root)
+void	handle_redirection_execution(t_tree *cmd, t_data *data,
+		int *exit_status)
 {
-	int	i;
+	if (cmd)
+		forker(cmd, data, exit_status);
+	else
+		forker(NULL, data, exit_status);
+	if (data->fds->in != STDIN_FILENO)
+		close(data->fds->in);
+	if (data->fds->out != STDOUT_FILENO)
+		close(data->fds->out);
+}
 
-	i = 0;
-	if (!*root || !root)
-		return ;
-	free_tree(&(*root)->left);
-	free_tree(&(*root)->right);
-	if ((*root)->type != HEREDOC)
-	{
-		if ((*root)->command)
-		{
-			while ((*root)->command[i])
-			{
-				if ((*root)->command[i])
-					free((*root)->command[i]);
-				i++;
-			}
-		}
-	}
-	if ((*root)->command)
-		free((*root)->command);
-	if ((*root)->file_name)
-		free((*root)->file_name);
-	free((*root));
+void	handle_redirection_error(t_fd *fd)
+{
+	if (fd->in != STDIN_FILENO)
+		close(fd->in);
+	if (fd->out != STDOUT_FILENO)
+		close(fd->out);
 }

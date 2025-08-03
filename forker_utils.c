@@ -1,41 +1,32 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   free_tree.c                                        :+:      :+:    :+:   */
+/*   forker_utils.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: rhafidi <rhafidi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/04/16 15:20:39 by rhafidi           #+#    #+#             */
-/*   Updated: 2025/07/25 17:55:18 by rhafidi          ###   ########.fr       */
+/*   Created: 2025/08/02 15:42:00 by rhafidi           #+#    #+#             */
+/*   Updated: 2025/08/02 15:42:14 by rhafidi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void	free_tree(t_tree **root)
+int	get_exit_status(int exit_status)
 {
-	int	i;
+	if (WIFEXITED(exit_status))
+		return (WEXITSTATUS(exit_status));
+	else if (WIFSIGNALED(exit_status))
+		return (128 + WTERMSIG(exit_status));
+	return (EXIT_FAILURE);
+}
 
-	i = 0;
-	if (!*root || !root)
-		return ;
-	free_tree(&(*root)->left);
-	free_tree(&(*root)->right);
-	if ((*root)->type != HEREDOC)
-	{
-		if ((*root)->command)
-		{
-			while ((*root)->command[i])
-			{
-				if ((*root)->command[i])
-					free((*root)->command[i]);
-				i++;
-			}
-		}
-	}
-	if ((*root)->command)
-		free((*root)->command);
-	if ((*root)->file_name)
-		free((*root)->file_name);
-	free((*root));
+void	redirecting(int in, int out)
+{
+	dup2(in, STDIN_FILENO);
+	dup2(out, STDOUT_FILENO);
+	if (in != STDIN_FILENO)
+		close(in);
+	if (out != STDOUT_FILENO)
+		close(out);
 }

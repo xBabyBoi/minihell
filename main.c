@@ -6,82 +6,68 @@
 /*   By: rhafidi <rhafidi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/11 13:27:23 by yel-qori          #+#    #+#             */
-/*   Updated: 2025/05/20 18:03:00 by rhafidi          ###   ########.fr       */
+/*   Updated: 2025/08/02 15:26:33 by rhafidi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-int exit_status = 0;
 
-int process_cmd(char *input, char ***env)
+void	setup_signals_and_check(int *exit_status)
 {
-    t_fd *fds;
-    char **tokens;
-    t_tree *ast;
-
-    fds = malloc(sizeof(t_fd));
-    if (!fds)
-    {
-        perror("Memory allocation failed");
-        return (EXIT_FAILURE);
-    }
-    fds->in = STDIN_FILENO;
-    fds->out = STDOUT_FILENO;
-    tokens = tokenize_input(input);
-    if (!tokens)
-        return (0);
-    ast = parse_tokens(tokens);
-    if (ast)
-    {
-        free_array(tokens);
-        exit_status = initialize(ast, fds, env);
-        free_tree(&ast);
-    }
-    else if (tokens)
-        free_array(tokens);
-    return (0);
+	signal(SIGINT, sigint_handler);
+	signal(SIGQUIT, SIG_IGN);
+	check_received_signal(exit_status);
 }
 
-void    shell_loop(char ***env)
+void	handle_null_input(char ***env, char ***exported, int exit_status)
 {
-    char    *input;
-    char    exit;
-    int     ret;
+	free_array(env[0]);
+	free_array(exported[0]);
+	ctrl_d_handle(0, exit_status);
+}
 
-    exit = 0;
-    while (!exit)
-    {
-        input = readline("minishell> ");
+void	shell_loop(char ***env, char ***exported, int *exit_status)
+{
+	char	*input;
+	char	exit;
+	int		ret;
+
+	exit = 0;
+	while (!exit)
+	{
+		setup_signals_and_check(exit_status);
+		input = readline("minishell> ");
+		check_received_signal(exit_status);
 		if (input == NULL)
-		{
-			printf("exit\n");
-			break ;
-		}
-		if (input[0] != '\0')
-		{
-			add_history(input);
-			ret = process_cmd(input, env);
-			if (ret == 1)
-				printf("\n");
-			exit = ret;
-		}
+			handle_null_input(env, exported, *exit_status);
+		ret = process_input_line(input, env, exported, exit_status);
+		exit = ret;
 		if (input)
-        {
-            free(input);
-            input = NULL;
-        }
+			free(input);
+		input = NULL;
 	}
 	clear_history();
 }
 
-int main(int ac, char **av, char **env) 
+int	main(int ac, char **av, char **env)
 {
-    (void)av;
-    (void)ac;
-    signal(SIGINT, sigint_handler);
+	char	**my_env;
+	int		exit_status;
+	char	**exported;
+
+	(void)av;
+	(void)ac;
+	exit_status = 0;
+	g_signum = 0;
+	signal(SIGINT, sigint_handler);
 	signal(SIGQUIT, SIG_IGN);
-    char    **my_env;
-    my_env = copy_env(env);
-    shell_loop(&my_env);
-    free_array(my_env);
+	my_env = copy_env(env);
+	update_shlvl(&my_env);
+	if (!my_env[0])
+		my_env = handle_env_i();
+	exported = copy_env(env);
+	shell_loop(&my_env, &exported, &exit_status);
+	free_array(my_env);
+	free_array(exported);
+	return (exit_status);
 }

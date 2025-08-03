@@ -1,41 +1,33 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   free_tree.c                                        :+:      :+:    :+:   */
+/*   expand_dollar_utils.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: rhafidi <rhafidi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/04/16 15:20:39 by rhafidi           #+#    #+#             */
-/*   Updated: 2025/07/25 17:55:18 by rhafidi          ###   ########.fr       */
+/*   Created: 2025/08/02 17:56:29 by rhafidi           #+#    #+#             */
+/*   Updated: 2025/08/02 19:18:32 by rhafidi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void	free_tree(t_tree **root)
+char	*ret_handle_dollar(char *result, int *i)
 {
-	int	i;
+	char	*tmp;
 
-	i = 0;
-	if (!*root || !root)
-		return ;
-	free_tree(&(*root)->left);
-	free_tree(&(*root)->right);
-	if ((*root)->type != HEREDOC)
-	{
-		if ((*root)->command)
-		{
-			while ((*root)->command[i])
-			{
-				if ((*root)->command[i])
-					free((*root)->command[i]);
-				i++;
-			}
-		}
-	}
-	if ((*root)->command)
-		free((*root)->command);
-	if ((*root)->file_name)
-		free((*root)->file_name);
-	free((*root));
+	tmp = ft_strjoin(result, "$");
+	free(result);
+	(*i)++;
+	return (tmp);
+}
+
+char	*ret_braces(char *result, char *var_value)
+{
+	char	*tmp;
+
+	tmp = ft_strjoin(result, var_value);
+	free(result);
+	free(var_value);
+	return (tmp);
 }

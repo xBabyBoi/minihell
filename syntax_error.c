@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   syntax_error.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yel-qori <yel-qori@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rhafidi <rhafidi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:03:07 by yel-qori          #+#    #+#             */
-/*   Updated: 2025/05/26 17:34:33 by yel-qori         ###   ########.fr       */
+/*   Updated: 2025/07/31 18:38:45 by rhafidi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parsing.h"
+#include "minishell.h"
 
 int	check_valid_quotes(char *input)
 {
@@ -31,40 +31,18 @@ int	check_valid_quotes(char *input)
 		i++;
 	}
 	if (quote != 0)
-		return (0);
-	return (1);
-}
-
-int	invalid_redirections(char **tokens)
-{
-	int	i;
-
-	i = 0;
-	while (tokens[i])
 	{
-		if (check_redirection(tokens[i]))
-		{
-
-			if (!tokens[i + 1])
-			{
-				printf("minishell: syntax error near unexpected token `newline`\n");
-				return (0);
-			}
-			if (check_redirection(tokens[i + 1]))
-			{
-				printf("minishell: syntax error near unexpected token `%s`\n",
-					tokens[i + 1]);
-				return (0);
-			}
-		}
-		i++;
+		ft_putstr_fd("minishell: syntax error: unexpected EOF while looking",
+			2);
+		ft_putstr_fd(" for matching quote\n", 2);
+		return (0);
 	}
 	return (1);
 }
 
-int invalid_pipe(char **tokens)
+int	invalid_pipe(char **tokens)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	while (tokens[i])
@@ -73,7 +51,9 @@ int invalid_pipe(char **tokens)
 		{
 			if (!tokens[i + 1])
 			{
-				printf("minishell: syntax error near unexpected token `|`\n");
+				ft_putstr_fd("minishell: syntax error near unexpected token",
+					2);
+				ft_putstr_fd(" `|'\n", 2);
 				return (0);
 			}
 		}
@@ -81,19 +61,39 @@ int invalid_pipe(char **tokens)
 	}
 	return (1);
 }
-int special_characters(char *input)
-{
-	int i;
 
+static int	handle_quotes(char *input, int *i, char *quote)
+{
+	if (input[*i] == '\'' || input[*i] == '"')
+	{
+		if (!*quote)
+			*quote = input[*i];
+		else if (*quote == input[*i])
+			*quote = 0;
+		(*i)++;
+		return (1);
+	}
+	return (0);
+}
+
+int	special_characters(char *input)
+{
+	int		i;
+	char	quote;
+
+	quote = 0;
 	i = 0;
 	while (input[i])
 	{
-		if (input[i] == ';' || input[i] == '\'')
+		if (handle_quotes(input, &i, &quote))
+			continue ;
+		if (!quote && input[i] == ';')
 		{
-			printf("error special characters`;` or `\` \n");
-			return (0);
+			ft_putstr_fd("minishell: syntax error near unexpected token", 2);
+			ft_putstr_fd(" `;'\n", 2);
+			return (1);
 		}
 		i++;
 	}
-	return (1);
+	return (0);
 }
